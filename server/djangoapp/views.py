@@ -1,12 +1,12 @@
 # Uncomment the required imports before adding the code
 
-# from django.shortcuts import render
-# from django.http import HttpResponseRedirect, HttpResponse
-# from django.contrib.auth.models import User
-# from django.shortcuts import get_object_or_404, render, redirect
-# from django.contrib.auth import logout
-# from django.contrib import messages
-# from datetime import datetime
+from django.shortcuts import render
+from django.http import HttpResponseRedirect, HttpResponse
+from django.contrib.auth.models import User
+from django.shortcuts import get_object_or_404, render, redirect
+from django.contrib.auth import logout
+from django.contrib import messages
+from datetime import datetime
 
 from django.http import JsonResponse
 from django.contrib.auth import login, authenticate
@@ -39,12 +39,49 @@ def login_user(request):
     return JsonResponse(data)
 
 # Create a `logout_request` view to handle sign out request
+@csrf_exempt
+def logout_user(request):
+    logout(request)
+    data = {"userName": ""}
+    return JsonResponse(data)
+
 # def logout_request(request):
 # ...
 
 # Create a `registration` view to handle sign up request
-# @csrf_exempt
-# def registration(request):
+@csrf_exempt
+def registration(request):
+    data = json.load(request.body)
+    username = data['userName']
+    password = data['password']
+    first_name = data['firstName']
+    last_name = data['lastName']
+    email = data['email']
+    # Check if the username or email already exists
+    username_exist = User.objects.filter(username=username).exists()
+    email_exist = User.objects.filter(email=email).exists()
+
+    if not username_exist and not email_exist:
+        # Create a new user
+        user = User.objects.create_user(
+            username=username, 
+            first_name=first_name, 
+            last_name=last_name, 
+            password=password, 
+            email=email
+        )
+        # Log in the new user
+        login(request, user)
+        data = {"userName": username, "status": "Authenticated"}
+        return JsonResponse(data)
+    else:
+        # If the user or email already exists
+        error_message = "Already Registered"
+        if email_exist:
+            error_message = "Email Already Registered"
+        data = {"userName": username, "error": error_message}
+        return JsonResponse(data)
+
 # ...
 
 # # Update the `get_dealerships` view to render the index page with
