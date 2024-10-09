@@ -14,6 +14,7 @@ import logging
 import json
 from django.views.decorators.csrf import csrf_exempt
 from .models import CarMake, CarModel
+from .restapis import get_request, analyze_review_sentiments, post_review
 # from .populate import initiate
 from .populate import initiate
 
@@ -102,15 +103,61 @@ def get_cars(request):
 # a list of dealerships
 # def get_dealerships(request):
 # ...
+#Update the `get_dealerships` render list of dealerships all by default, particular state if state is passed
+def get_dealerships(request, state="All"):
+    if(state == "All"):
+        endpoint = "/fetchDealers"
+    else:
+        endpoint = "/fetchDealers/"+state
+    dealerships = get_request(endpoint)
+    return JsonResponse({"status":200,"dealers":dealerships})
 
 # Create a `get_dealer_reviews` view to render the reviews of a dealer
 # def get_dealer_reviews(request,dealer_id):
 # ...
+def analyze_review_sentiments(review_text):
+    url = "https://sentianalyzer.1mu3rcgdbvsa.us-south.codeengine.appdomain.cloud/"  # Replace with the correct microservice URL
+    payload = {"text": review_text}
+    try:
+        response = requests.post(url, json=payload)
+        if response.status_code == 200:
+            return response.json()  # Assuming the response contains 'sentiment' attribute
+        else:
+            return {"sentiment": "neutral"}  # Default to neutral if microservice fails
+    except requests.RequestException as e:
+        return {"sentiment": "neutral"}  # Handle errors gracefully
 
 # Create a `get_dealer_details` view to render the dealer details
 # def get_dealer_details(request, dealer_id):
 # ...
 
+def get_dealer_details(request, dealer_id):
+    if dealer_id:
+        # Construct the endpoint using the dealer_id
+        endpoint = f"/fetchDealer/{dealer_id}"
+        # Use get_request to fetch dealer details
+        dealership = get_request(endpoint)
+        # Return the dealership details as a JSON response
+        return JsonResponse({"status": 200, "dealer": dealership})
+    else:
+        # Return a 400 Bad Request if dealer_id is missing
+        return JsonResponse({"status": 400, "message": "Dealer ID not provided"})
+
 # Create a `add_review` view to submit a review
 # def add_review(request):
 # ...
+def add_review(request):
+    # Check if the user is authenticated
+    if request.user.is_authenticated:
+        # Load the data from the request body
+        data = json.loads(request.body)
+        try:
+            # Call the post_request method to send the review
+            response = post_request(data)
+            print(response)  # Print the post response for debugging
+            return JsonResponse({"status": 200, "message": "Review posted successfully"})
+        except Exception as e:
+            print(e)  # Print the error for debugging
+            return JsonResponse({"status": 401, "message": "Error in posting review"})
+    else:
+        return JsonResponse({"status": 403, "message": "User not authenticated"})
