@@ -128,7 +128,18 @@ def analyze_review_sentiments(review_text):
         return {"sentiment": "neutral"}  # Handle errors gracefully
 
 # Create a `get_dealer_details` view to render the dealer details
-# def get_dealer_details(request, dealer_id):
+# def get_dealer_details(request, dealer_id)
+def get_dealer_reviews(request, dealer_id):
+    endpoint = f"/fetchReviews/{dealer_id}"
+    
+    try:
+        reviews = get_request(endpoint)
+        return JsonResponse({"status": 200, "reviews": reviews})
+    except Exception as e:
+        logger.error(f"Error fetching reviews for dealer {dealer_id}: {e}")
+        return JsonResponse({"status": 500, "message": "Internal Server Error"}, status=500)
+
+# Get dealer details
 # ...
 
 def get_dealer_details(request, dealer_id):
